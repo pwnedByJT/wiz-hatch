@@ -2,9 +2,9 @@
 
 `wiz-hatch` is a small, security-focused Discord bot that reproduces the
 [Wizard101 Pet Return Chance Calculator](https://petbodyw101.vercel.app/) as a
-native `/hatch` slash command. It also provides `/pet`, `/stats`, and `/wiki`
-utilities backed by Wizard101 Central Wiki links. All four commands use a
-checked-in catalog of 1,410 pet bodies and perform command handling in memory.
+native `/hatch` slash command. It also provides `/pet`, `/stats`, `/wiki`, and
+`/quest` utilities backed by Wizard101 Central Wiki links. All catalog and
+progress calculations run in memory.
 
 The project targets Python 3.11 or newer, `discord.py` 2.x, ARM64 containers,
 and a Raspberry Pi k3s cluster. It is not affiliated with KingsIsle
@@ -41,9 +41,20 @@ left slot still uses the normal wow-factor formula.
 - `/wiki query category` opens a safely encoded Wiki search or category link.
   Exact catalog pet names receive a direct pet-page link, along with Pet,
   Talent, Jewel, and Snack locator links.
+- `/quest quest_name world quest_number` tracks the 2,258 main quests across
+  23 worlds and five story arcs. It displays Unicode visual progress bars for
+  the current world, story arc, and the overall Spiral, including remaining
+  quest counts. `world` and `quest_number` are optional; the command uses
+  Wizard101 Central Wiki Quest metadata when either value is omitted.
 
-Wiki URLs are generated locally. No slash command performs outbound network or
-filesystem I/O while handling an interaction.
+`/pet` and `/hatch` resolve bounded, cached pet thumbnails from Wizard101
+Central Wiki. If the Wiki is unavailable, embeds are sent without thumbnails.
+The `/quest` world autocomplete is fully in-memory and never performs network
+I/O.
+
+Wiki links and progress calculations are generated locally. Pet thumbnails and
+Wiki quest metadata use a strictly allowlisted HTTPS request with a 2.5-second
+timeout and bounded in-memory caches; failures fall back cleanly.
 
 ## Discord setup
 
@@ -76,7 +87,7 @@ and push changes only to that branch, then open a GitHub Pull Request targeting
 and `pytest`; never bypass the Pull Request workflow.
 
 Advance releases with Semantic Versioning; the current feature release is
-`0.1.0`. Create release tags from `main` only after merge.
+`0.2.0`. Create release tags from `main` only after merge.
 
 ## Local development
 
@@ -125,8 +136,9 @@ The catalog is generated from the public reference application's client bundle:
 python scripts/build_w101_pets.py
 ```
 
-Review catalog changes before committing them. This script is the only feature
-that fetches the reference site. The running bot reads `data/pets.json` exactly
+Review catalog changes before committing them. This script fetches the public
+reference application. Runtime Wiki requests are limited to the allowlisted
+origin and bounded in memory. The running bot reads `data/pets.json` exactly
 once while loading its command cog. Every autocomplete interaction then uses a
 normalized, immutable in-memory index, returns at most Discord's 25 choices,
 and performs zero disk or network I/O.
@@ -136,9 +148,9 @@ and performs zero disk or network I/O.
 Build and run locally:
 
 ```bash
-docker build --tag wiz-hatch:0.1.0 .
+docker build --tag wiz-hatch:0.2.0 .
 docker run --rm --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m \
-  --env-file .env.example wiz-hatch:0.1.0
+  --env-file .env.example wiz-hatch:0.2.0
 ```
 
 Supply `DISCORD_TOKEN` in a private env file rather than editing the checked-in
@@ -185,7 +197,7 @@ explicit CPU and memory limits.
 
 ## Release policy
 
-The package and deployment are currently at `0.1.0`. Releases follow
+The package and deployment are currently at `0.2.0`. Releases follow
 Semantic Versioning. Keep `pyproject.toml`, `src/wiz_hatch/__init__.py`, the
 Docker tag, image labels, and Kubernetes labels synchronized.
 
