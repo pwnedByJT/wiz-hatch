@@ -112,8 +112,7 @@ async def test_hatch_command_links_pets_and_shows_cumulative_odds() -> None:
     embed = sender.call_args.kwargs["embed"]
     field_values = " ".join(field.value for field in embed.fields)
     assert (
-        "[WF Base](https://wiki.wizard101central.com/wiki/Pet:WF_Base)"
-        in field_values
+        "[WF Base](https://wiki.wizard101central.com/wiki/Pet:WF_Base)" in field_values
     )
     assert (
         "[Target Pet](https://wiki.wizard101central.com/wiki/Pet:Target_Pet)"
@@ -149,9 +148,7 @@ async def test_wiki_command_links_exact_pet_and_all_locator_tables() -> None:
     await W101Hatch.wiki.callback(cog, interaction, "Target Pet", "Pet")
 
     embed = sender.call_args.kwargs["embed"]
-    rendered = embed.description + " " + " ".join(
-        field.value for field in embed.fields
-    )
+    rendered = embed.description + " " + " ".join(field.value for field in embed.fields)
     assert "Pet:Target_Pet" in rendered
     assert "Category:Pet" in rendered
     assert "Pet_Talent_Locator" in rendered

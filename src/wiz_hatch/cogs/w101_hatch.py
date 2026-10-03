@@ -8,7 +8,7 @@ import os
 import unicodedata
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_EVEN
+from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from types import MappingProxyType
 from typing import Final, cast
@@ -24,15 +24,9 @@ MAX_WIKI_QUERY_LENGTH: Final = 200
 SOURCE_URL: Final = "https://petbodyw101.vercel.app/"
 WIKI_BASE_URL: Final = "https://wiki.wizard101central.com/wiki/"
 PET_LOCATOR_URL: Final = f"{WIKI_BASE_URL}Special:RunQuery/Pet_Locator"
-PET_STAT_CALCULATOR_URL: Final = (
-    f"{WIKI_BASE_URL}Special:RunQuery/Pet_Stat_Calculator"
-)
-PET_TALENT_LOCATOR_URL: Final = (
-    f"{WIKI_BASE_URL}Special:RunQuery/Pet_Talent_Locator"
-)
-PET_JEWEL_LOCATOR_URL: Final = (
-    f"{WIKI_BASE_URL}Special:RunQuery/Pet_Jewel_Locator"
-)
+PET_STAT_CALCULATOR_URL: Final = f"{WIKI_BASE_URL}Special:RunQuery/Pet_Stat_Calculator"
+PET_TALENT_LOCATOR_URL: Final = f"{WIKI_BASE_URL}Special:RunQuery/Pet_Talent_Locator"
+PET_JEWEL_LOCATOR_URL: Final = f"{WIKI_BASE_URL}Special:RunQuery/Pet_Jewel_Locator"
 SNACK_FINDER_URL: Final = f"{WIKI_BASE_URL}Special:RunQuery/Snack_Finder"
 WIKI_CATEGORIES: Final = (
     "Pet",
@@ -741,9 +735,7 @@ def _normalize_wiki_query(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value).strip()
     if not normalized or len(normalized) > MAX_WIKI_QUERY_LENGTH:
         raise ValueError("Wiki query must contain 1-200 characters")
-    if any(
-        unicodedata.category(character).startswith("C") for character in normalized
-    ):
+    if any(unicodedata.category(character).startswith("C") for character in normalized):
         raise ValueError("Wiki query cannot contain control characters")
     return normalized
 
