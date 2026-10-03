@@ -2,8 +2,9 @@ name: CI
 
 on:
   pull_request:
-  push:
     branches: [main]
+  push:
+    branches-ignore: [main]
 
 permissions:
   contents: read
@@ -52,6 +53,9 @@ jobs:
 
       - name: Lint
         run: python -m ruff check .
+
+      - name: Security lint
+        run: python -m bandit --recursive src --skip B104,B110
 
       - name: Type check
         run: python -m mypy
