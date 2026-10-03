@@ -2,8 +2,9 @@
 
 `wiz-hatch` is a small, security-focused Discord bot that reproduces the
 [Wizard101 Pet Return Chance Calculator](https://petbodyw101.vercel.app/) as a
-native `/hatch` slash command. Both pet fields provide real-time type-ahead
-autocomplete from a checked-in catalog of 1,410 pet bodies.
+native `/hatch` slash command. It also provides `/pet`, `/stats`, and `/wiki`
+utilities backed by Wizard101 Central Wiki links. All four commands use a
+checked-in catalog of 1,410 pet bodies and perform command handling in memory.
 
 The project targets Python 3.11 or newer, `discord.py` 2.x, ARM64 containers,
 and a Raspberry Pi k3s cluster. It is not affiliated with KingsIsle
@@ -24,6 +25,25 @@ calculator. A body with a higher wow factor has a lower return chance. When an
 exclusive pet is placed in the right slot of a self-hatch, it cannot be
 returned, so the left body has a 100% return chance. An exclusive body in the
 left slot still uses the normal wow-factor formula.
+
+## Slash commands
+
+- `/hatch left_pet right_pet` calculates both body return chances, links each
+  pet to its Wizard101 Central Wiki page, and shows cumulative odds for 3, 5,
+  and 10 hatches plus 50% and 90% confidence counts.
+- `/pet pet_name` inspects Wow Factor and Exclusive status, links to the Pet
+  Locator and Pet Stat Calculator, and compares the pet with a WF 10
+  Kiosk/Sticky Base.
+- `/stats strength intellect agility will power mighty_or_thinkin_cap` computes
+  exact and half-to-even rounded Pet 2.0 talent values. Defaults are
+  `255/250/260/260/250`; stats are bounded from 0 through 350, and the optional
+  cap flag applies Mighty's +65 Strength bonus.
+- `/wiki query category` opens a safely encoded Wiki search or category link.
+  Exact catalog pet names receive a direct pet-page link, along with Pet,
+  Talent, Jewel, and Snack locator links.
+
+Wiki URLs are generated locally. No slash command performs outbound network or
+filesystem I/O while handling an interaction.
 
 ## Discord setup
 
@@ -55,10 +75,8 @@ and push changes only to that branch, then open a GitHub Pull Request targeting
 `main`. Merge through the Pull Request only after CI passes `ruff`, `bandit`,
 and `pytest`; never bypass the Pull Request workflow.
 
-Apply strict Semantic Versioning only when the Pull Request merges into `main`.
-Advance releases sequentially (`0.0.1` to `0.0.2` for a patch, then to `0.1.0`
-for the first feature release), and create release tags from `main` only after
-merge.
+Advance releases with Semantic Versioning; the current feature release is
+`0.1.0`. Create release tags from `main` only after merge.
 
 ## Local development
 
@@ -118,9 +136,9 @@ and performs zero disk or network I/O.
 Build and run locally:
 
 ```bash
-docker build --tag wiz-hatch:0.0.1 .
+docker build --tag wiz-hatch:0.1.0 .
 docker run --rm --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m \
-  --env-file .env.example wiz-hatch:0.0.1
+  --env-file .env.example wiz-hatch:0.1.0
 ```
 
 Supply `DISCORD_TOKEN` in a private env file rather than editing the checked-in
@@ -167,11 +185,9 @@ explicit CPU and memory limits.
 
 ## Release policy
 
-The package and deployment start at `0.0.1`. Releases follow Semantic
-Versioning and progress sequentially; the next patch is `0.0.2`, and the first
-feature release is `0.1.0`. Update `pyproject.toml`,
-`src/wiz_hatch/__init__.py`, the Docker tag, image labels, and Kubernetes labels
-together.
+The package and deployment are currently at `0.1.0`. Releases follow
+Semantic Versioning. Keep `pyproject.toml`, `src/wiz_hatch/__init__.py`, the
+Docker tag, image labels, and Kubernetes labels synchronized.
 
 ## Security and contributing
 

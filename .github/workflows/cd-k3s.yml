@@ -50,12 +50,12 @@ jobs:
           platforms: linux/arm64
           tags: |
             ${{ steps.image.outputs.name }}:${{ github.sha }}
-            ${{ steps.image.outputs.name }}:0.0.1
+            ${{ steps.image.outputs.name }}:0.1.0
             ${{ steps.image.outputs.name }}:latest
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.version=0.0.1
+            org.opencontainers.image.version=0.1.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

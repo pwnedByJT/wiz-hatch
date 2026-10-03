@@ -37,7 +37,7 @@ def fetch_text(url: str) -> str:
         raise ValueError("Refusing to fetch from an untrusted origin")
     request = urllib.request.Request(  # noqa: S310 - origin is allow-listed above
         url,
-        headers={"User-Agent": "wiz-hatch-data-builder/0.0.1"},
+        headers={"User-Agent": "wiz-hatch-data-builder/0.1.0"},
     )
     with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310
         return response.read().decode("utf-8")
