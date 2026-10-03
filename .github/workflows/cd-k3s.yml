@@ -66,9 +66,6 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
-      - name: Apply namespace
-        run: kubectl apply --filename k8s/namespace.yaml
-
       - name: Reconcile Discord token secret
         shell: bash
         env:
@@ -76,7 +73,7 @@ jobs:
         run: |
           test -n "$DISCORD_TOKEN"
           printf 'DISCORD_TOKEN=%s\n' "$DISCORD_TOKEN" \
-            | kubectl --namespace wiz-hatch create secret generic wiz-hatch \
+            | kubectl --namespace default create secret generic wiz-hatch \
                 --from-env-file=/dev/stdin --dry-run=client --output=yaml \
             | kubectl apply --filename=-
 
@@ -84,9 +81,9 @@ jobs:
         env:
           IMAGE: ${{ steps.image.outputs.name }}:${{ github.sha }}
         run: |
-          kubectl --namespace wiz-hatch set image --local \
+          kubectl --namespace default set image --local \
             --filename k8s/deployment.yaml wiz-hatch="$IMAGE" --output=yaml \
             | kubectl apply --filename=-
-          kubectl --namespace wiz-hatch annotate deployment/wiz-hatch \
+          kubectl --namespace default annotate deployment/wiz-hatch \
             app.kubernetes.io/revision="${GITHUB_SHA}" --overwrite
-          kubectl --namespace wiz-hatch rollout status deployment/wiz-hatch --timeout=180s
+          kubectl --namespace default rollout status deployment/wiz-hatch --timeout=180s
