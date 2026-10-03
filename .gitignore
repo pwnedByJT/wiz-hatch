@@ -19,3 +19,4 @@ htmlcov/
 .ruff_cache/
 build/
 *.egg-info/
+.wibey-test/

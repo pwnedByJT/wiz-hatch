@@ -70,29 +70,52 @@ class Pet:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class _SearchEntry:
+    """Precomputed data used by autocomplete matching."""
+
+    normalized_name: str
+    pet: Pet
+    choice: app_commands.Choice[str]
+
+
 class PetCatalog:
     """Immutable in-memory pet lookup and autocomplete index."""
 
     def __init__(self, pets: Iterable[Pet]) -> None:
         ordered = tuple(sorted(pets, key=lambda pet: pet.name.casefold()))
         by_name: dict[str, Pet] = {}
-        searchable: list[tuple[str, Pet]] = []
+        choices: list[app_commands.Choice[str]] = []
+        searchable: list[_SearchEntry] = []
+        prefix_index: dict[str, list[_SearchEntry]] = {}
         for pet in ordered:
-            normalized_name = normalize_pet_name(pet.name)
-            lookup_key = normalized_name.casefold()
-            if lookup_key in by_name:
+            normalized_name = normalize_pet_name(pet.name).casefold()
+            if normalized_name in by_name:
                 msg = f"Duplicate pet name after normalization: {pet.name!r}"
                 raise PetDataError(msg)
-            by_name[lookup_key] = pet
+
+            by_name[normalized_name] = pet
+            choice = app_commands.Choice(name=pet.name, value=pet.name)
+            choices.append(choice)
             if pet.wow_factor is not None:
-                searchable.append((lookup_key, pet))
+                entry = _SearchEntry(normalized_name, pet, choice)
+                searchable.append(entry)
+                for end in range(1, len(normalized_name) + 1):
+                    prefix_index.setdefault(normalized_name[:end], []).append(entry)
 
         if not by_name:
             raise PetDataError("The pet catalog cannot be empty")
 
         self._pets = ordered
         self._by_name: Mapping[str, Pet] = MappingProxyType(by_name)
+        self._choices = tuple(choices)
         self._searchable = tuple(searchable)
+        self._prefix_index: Mapping[str, tuple[_SearchEntry, ...]] = MappingProxyType(
+            {key: tuple(entries) for key, entries in prefix_index.items()}
+        )
+        self._default_choices = [
+            entry.choice for entry in self._searchable[:MAX_AUTOCOMPLETE_CHOICES]
+        ]
 
     @classmethod
     def from_path(cls, path: Path) -> PetCatalog:
@@ -135,25 +158,57 @@ class PetCatalog:
         """Search the in-memory index, prioritizing prefix matches."""
         if limit <= 0:
             return []
-        bounded_limit = min(limit, MAX_AUTOCOMPLETE_CHOICES)
-        try:
-            needle = normalize_pet_name(query, allow_empty=True).casefold()
-        except ValueError:
+        needle = _normalized_search_query(query)
+        if needle is None:
             return []
+        return [entry.pet for entry in self._matching_entries(needle, limit)]
 
+    def search_choices(
+        self,
+        query: str,
+        limit: int = MAX_AUTOCOMPLETE_CHOICES,
+    ) -> list[app_commands.Choice[str]]:
+        """Return cached autocomplete choices, prioritizing prefix matches."""
+        if limit <= 0:
+            return []
+        bounded_limit = min(limit, MAX_AUTOCOMPLETE_CHOICES)
+        needle = _normalized_search_query(query)
+        if needle is None:
+            return []
         if not needle:
-            return [pet for _name, pet in self._searchable[:bounded_limit]]
+            if bounded_limit == MAX_AUTOCOMPLETE_CHOICES:
+                return self._default_choices
+            return self._default_choices[:bounded_limit]
+        return [entry.choice for entry in self._matching_entries(needle, bounded_limit)]
 
-        prefix: list[Pet] = []
-        contains: list[Pet] = []
-        for normalized_name, pet in self._searchable:
-            if normalized_name.startswith(needle):
-                prefix.append(pet)
-            elif needle in normalized_name and len(contains) < bounded_limit:
-                contains.append(pet)
-            if len(prefix) >= bounded_limit:
-                break
-        return (prefix + contains)[:bounded_limit]
+    def _matching_entries(self, needle: str, limit: int) -> tuple[_SearchEntry, ...]:
+        if limit <= 0:
+            return ()
+        bounded_limit = min(limit, MAX_AUTOCOMPLETE_CHOICES)
+        if not needle:
+            return self._searchable[:bounded_limit]
+
+        prefix = self._prefix_index.get(needle, ())
+        if len(prefix) >= bounded_limit:
+            return prefix[:bounded_limit]
+
+        remaining = bounded_limit - len(prefix)
+        contains: list[_SearchEntry] = []
+        for entry in self._searchable:
+            if entry.normalized_name.startswith(needle):
+                continue
+            if needle in entry.normalized_name:
+                contains.append(entry)
+                if len(contains) == remaining:
+                    break
+        return prefix + tuple(contains)
+
+
+def _normalized_search_query(value: str) -> str | None:
+    try:
+        return normalize_pet_name(value, allow_empty=True).casefold()
+    except ValueError:
+        return None
 
 
 def normalize_pet_name(value: str, *, allow_empty: bool = False) -> str:
@@ -204,10 +259,7 @@ class W101Hatch(commands.Cog):
         self.catalog = catalog
 
     def _autocomplete_choices(self, current: str) -> list[app_commands.Choice[str]]:
-        return [
-            app_commands.Choice(name=pet.name, value=pet.name)
-            for pet in self.catalog.search(current)
-        ]
+        return self.catalog.search_choices(current)
 
     @app_commands.command(
         name="hatch",
