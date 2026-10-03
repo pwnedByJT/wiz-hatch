@@ -25,5 +25,5 @@ data:
 	python scripts/build_w101_pets.py
 
 docker-build:
-	docker build --tag wiz-hatch:0.0.1 .
+	docker build --tag wiz-hatch:0.1.0 .
 

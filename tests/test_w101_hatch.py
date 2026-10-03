@@ -2,16 +2,29 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 from time import perf_counter
+from types import SimpleNamespace
+from typing import cast
+from unittest.mock import AsyncMock
 
+import discord
 import pytest
+from discord.ext import commands
 
 from wiz_hatch.cogs.w101_hatch import (
     Pet,
     PetCatalog,
     UnknownPetError,
+    W101Hatch,
+    calculate_pet_stats,
     calculate_return_chances,
+    cumulative_hatch_probability,
+    hatches_for_confidence,
+    multi_hatch_odds,
+    pet_wiki_url,
+    wiki_search_url,
 )
 
 
@@ -32,6 +45,115 @@ def make_pet(
         retired=False,
         special_body=False,
     )
+
+
+def test_wiki_urls_encode_names_and_queries_deterministically() -> None:
+    assert pet_wiki_url("O'Brien (Fire) Pet") == (
+        "https://wiki.wizard101central.com/wiki/Pet:O%27Brien_(Fire)_Pet"
+    )
+    assert wiki_search_url("O'Brien (Fire)/Storm") == (
+        "https://wiki.wizard101central.com/wiki/Special:Search?search="
+        "O%27Brien%20%28Fire%29%2FStorm"
+    )
+    assert make_pet("O'Brien (Fire) Pet", 5).wiki_url == pet_wiki_url(
+        "O'Brien (Fire) Pet"
+    )
+
+
+def test_multi_hatch_probability_and_confidence_math() -> None:
+    assert cumulative_hatch_probability(0.1, 3) == pytest.approx(0.271)
+    assert hatches_for_confidence(0.5, 0.5) == 1
+    assert hatches_for_confidence(0.1, 0.5) == 7
+
+    odds = multi_hatch_odds(0.1)
+    assert odds.cumulative == pytest.approx((0.271, 0.40951, 0.651321))
+    assert odds.confidence_hatches == (7, 14, 22)
+
+
+def test_standard_pet_2_stats_use_exact_and_half_even_rounding() -> None:
+    stats = calculate_pet_stats()
+
+    assert stats["School-Dealer"].unrounded == Decimal("10.24")
+    assert stats["School-Dealer"].rounded == 10
+    assert stats["School-Giver / Pain-Giver"].unrounded == Decimal("6.4")
+    assert stats["School-Giver / Pain-Giver"].rounded == 6
+    assert stats["Armor Piercer"].unrounded == Decimal("2.048")
+    assert stats["Armor Piercer"].rounded == 2
+
+
+def test_mighty_cap_adds_65_strength_to_stat_formulas() -> None:
+    stats = calculate_pet_stats(mighty_or_thinkin_cap=True)
+
+    assert stats["School-Dealer"].unrounded == Decimal("11.28")
+    assert stats["School-Dealer"].rounded == 11
+    assert stats["Spell-Proof"].unrounded == Decimal("11.28")
+
+
+def _fake_interaction() -> tuple[discord.Interaction, AsyncMock]:
+    sender = AsyncMock()
+    interaction = cast(
+        discord.Interaction,
+        SimpleNamespace(response=SimpleNamespace(send_message=sender)),
+    )
+    return interaction, sender
+
+
+def _test_cog(*pets: Pet) -> W101Hatch:
+    return W101Hatch(cast(commands.Bot, object()), PetCatalog(pets))
+
+
+@pytest.mark.asyncio
+async def test_hatch_command_links_pets_and_shows_cumulative_odds() -> None:
+    cog = _test_cog(make_pet("WF Base", 10), make_pet("Target Pet", 1))
+    interaction, sender = _fake_interaction()
+
+    await W101Hatch.hatch.callback(cog, interaction, "WF Base", "Target Pet")
+
+    embed = sender.call_args.kwargs["embed"]
+    field_values = " ".join(field.value for field in embed.fields)
+    assert (
+        "[WF Base](https://wiki.wizard101central.com/wiki/Pet:WF_Base)" in field_values
+    )
+    assert (
+        "[Target Pet](https://wiki.wizard101central.com/wiki/Pet:Target_Pet)"
+        in field_values
+    )
+    assert "3 hatches:" in field_values
+    assert "50% confidence:" in field_values
+    assert "90% confidence:" in field_values
+
+
+@pytest.mark.asyncio
+async def test_pet_command_shows_pairing_odds_and_reference_links() -> None:
+    cog = _test_cog(make_pet("Target Pet", 1))
+    interaction, sender = _fake_interaction()
+
+    await W101Hatch.pet.callback(cog, interaction, "Target Pet")
+
+    embed = sender.call_args.kwargs["embed"]
+    field_values = " ".join(field.value for field in embed.fields)
+    assert "Wow Factor: 1/10" in field_values
+    assert "Exclusive: No" in field_values
+    assert "Exact right-slot return: **91%**" in field_values
+    assert "50% confidence:" in field_values
+    assert "Pet_Locator" in embed.description
+    assert "Pet_Stat_Calculator" in embed.description
+
+
+@pytest.mark.asyncio
+async def test_wiki_command_links_exact_pet_and_all_locator_tables() -> None:
+    cog = _test_cog(make_pet("Target Pet", 1))
+    interaction, sender = _fake_interaction()
+
+    await W101Hatch.wiki.callback(cog, interaction, "Target Pet", "Pet")
+
+    embed = sender.call_args.kwargs["embed"]
+    rendered = embed.description + " " + " ".join(field.value for field in embed.fields)
+    assert "Pet:Target_Pet" in rendered
+    assert "Category:Pet" in rendered
+    assert "Pet_Talent_Locator" in rendered
+    assert "Pet_Jewel_Locator" in rendered
+    assert "Snack_Finder" in rendered
 
 
 def test_equal_wow_factors_split_evenly() -> None:

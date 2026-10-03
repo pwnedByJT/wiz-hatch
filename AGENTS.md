@@ -27,6 +27,6 @@ required checks.
 ## Rule 3: Strict Semantic Versioning
 
 Follow Semantic Versioning and change versions only when the Pull Request is
-merged into `main`. Advance versions sequentially: `0.0.1` to `0.0.2` for a
-patch, then to `0.1.0` for the first feature release. Create release tags only
-from the resulting commit on `main` after merge.
+merged into `main`. Advance patch releases by one patch number and feature
+releases by one minor number. Create release tags only from the resulting
+commit on `main` after merge.
