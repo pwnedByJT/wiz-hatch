@@ -153,9 +153,8 @@ Deployment to the immutable commit tag, and waits for rollout completion.
 For a manual first deployment, create the secret without writing it to disk:
 
 ```bash
-kubectl apply --filename k8s/namespace.yaml
 printf 'DISCORD_TOKEN=%s\n' "$DISCORD_TOKEN" \
-  | kubectl --namespace wiz-hatch create secret generic wiz-hatch \
+  | kubectl --namespace default create secret generic wiz-hatch \
       --from-env-file=/dev/stdin --dry-run=client --output=yaml \
   | kubectl apply --filename=-
 kubectl apply --filename k8s/deployment.yaml

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wiz-hatch
-  namespace: wiz-hatch
+  namespace: default
   labels:
     app.kubernetes.io/name: wiz-hatch
     app.kubernetes.io/version: 0.0.1
@@ -31,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: wiz-hatch
-          image: wiz-hatch:0.0.1
+          image: ghcr.io/pwnedbyjt/wiz-hatch:0.0.1
           imagePullPolicy: IfNotPresent
           env:
             - name: DISCORD_TOKEN
