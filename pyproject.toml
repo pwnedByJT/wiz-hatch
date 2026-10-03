@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wiz-hatch"
+version = "0.0.1"
+description = "A Discord bot for Wizard101 pet body return chance calculations."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "wiz-hatch contributors" }]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: No Input/Output (Daemon)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+dependencies = ["discord.py==2.7.1"]
+
+[project.urls]
+Homepage = "https://github.com/KingHittz/wiz-hatch"
+Issues = "https://github.com/KingHittz/wiz-hatch/issues"
+Source = "https://github.com/KingHittz/wiz-hatch"
+
+[project.scripts]
+wiz-hatch = "wiz_hatch.bot:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["ANN", "ASYNC", "B", "E", "F", "I", "RUF", "S", "UP", "W"]
+ignore = ["ANN401"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+pretty = true
+show_error_codes = true
+packages = ["wiz_hatch"]
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers -ra"
+testpaths = ["tests"]
+pythonpath = ["src"]

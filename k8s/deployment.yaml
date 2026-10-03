@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wiz-hatch
+  namespace: wiz-hatch
+  labels:
+    app.kubernetes.io/name: wiz-hatch
+    app.kubernetes.io/version: 0.0.1
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wiz-hatch
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wiz-hatch
+        app.kubernetes.io/version: 0.0.1
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: wiz-hatch
+          image: wiz-hatch:0.0.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: wiz-hatch
+                  key: DISCORD_TOKEN
+            - name: LOG_LEVEL
+              value: INFO
+            - name: HEALTH_HOST
+              value: 0.0.0.0
+            - name: HEALTH_PORT
+              value: "8080"
+            - name: TMPDIR
+              value: /tmp
+          ports:
+            - name: health
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
+
