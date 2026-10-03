@@ -38,6 +38,28 @@ left slot still uses the normal wow-factor formula.
 
 The bot requests no privileged gateway intents and disables allowed mentions.
 
+## Development workflow
+
+All work uses GitHub Flow. Never modify files or commit directly on `main`.
+Before changing any file, update local `main` and create a descriptive branch:
+
+```bash
+git fetch origin
+git checkout main
+git pull --ff-only origin main
+git checkout -b <type>/<short-description>
+```
+
+Use `feat/`, `fix/`, `chore/`, `sec/`, or `docs/` as the branch prefix. Commit
+and push changes only to that branch, then open a GitHub Pull Request targeting
+`main`. Merge through the Pull Request only after CI passes `ruff`, `bandit`,
+and `pytest`; never bypass the Pull Request workflow.
+
+Apply strict Semantic Versioning only when the Pull Request merges into `main`.
+Advance releases sequentially (`0.0.1` to `0.0.2` for a patch, then to `0.1.0`
+for the first feature release), and create release tags from `main` only after
+merge.
+
 ## Local development
 
 Create an isolated environment and install the exact development dependencies:
@@ -74,7 +96,8 @@ make check
 ```
 
 The equivalent commands are `python -m ruff format --check .`,
-`python -m ruff check .`, `python -m mypy`, and `python -m pytest`.
+`python -m ruff check .`, `python -m bandit --recursive src --skip B104,B110`,
+`python -m mypy`, and `python -m pytest`.
 
 ## Pet data and autocomplete
 

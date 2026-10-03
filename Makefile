@@ -10,6 +10,7 @@ format:
 lint:
 	python -m ruff format --check .
 	python -m ruff check .
+	python -m bandit --recursive src --skip B104,B110
 	python -m mypy
 
 test:
