@@ -104,9 +104,7 @@ def test_empty_autocomplete_query_returns_cached_choices() -> None:
 
 
 def test_autocomplete_reuses_cached_choice_objects() -> None:
-    catalog = PetCatalog(
-        [make_pet("Alpha Wolf", 5), make_pet("Wolf Alpha", 6)]
-    )
+    catalog = PetCatalog([make_pet("Alpha Wolf", 5), make_pet("Wolf Alpha", 6)])
 
     first = catalog.search_choices("alpha")
     second = catalog.search_choices("alpha")

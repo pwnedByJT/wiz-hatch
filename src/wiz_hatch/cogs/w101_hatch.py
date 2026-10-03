@@ -179,9 +179,7 @@ class PetCatalog:
             if bounded_limit == MAX_AUTOCOMPLETE_CHOICES:
                 return self._default_choices
             return self._default_choices[:bounded_limit]
-        return [
-            entry.choice for entry in self._matching_entries(needle, bounded_limit)
-        ]
+        return [entry.choice for entry in self._matching_entries(needle, bounded_limit)]
 
     def _matching_entries(self, needle: str, limit: int) -> tuple[_SearchEntry, ...]:
         if limit <= 0:
